@@ -1,0 +1,100 @@
+﻿@page "/"
+@using System.Net
+@using BlazorViaCep.Models
+@inject HttpClient Http
+
+<PageTitle>Home</PageTitle>
+
+<h1>Consulta Vua Cep</h1>
+
+<div>
+    <label for="cepInput">CEP</label>
+    <input type="text" class="form-control" id="cepInput" @bind="cep" placeholder="Digite o Cep (somente números)">
+</div>
+<button class="btn btn-primary mt-2" @onclick="ConsultaCep">Consultar</button>
+
+@if (viaCepResponse != null)
+{
+    <h3 class="mt-4">Resultado:</h3/>
+    <table class="table table-bordered">
+        <tbody>
+            <tr>
+                <td><strong>CEP:</strong></td>
+                <td>@viaCepResponse.Cep</td>
+            </tr>
+            <tr>
+                <td><strong>Logradouro:</strong></td>
+                <td>@viaCepResponse.Rua</td>
+            </tr>
+            <tr>
+                <td><strong>Complemento:</strong></td>
+                <td>@viaCepResponse.Complemento</td>
+            </tr>
+            <tr>
+                <td><strong>Bairro:</strong></td>
+                <td>@viaCepResponse.Bairro</td>
+            </tr>
+            <tr>
+                <td><strong>Localidade:</strong></td>
+                <td>@viaCepResponse.Cidade</td>
+            </tr>
+            <tr>
+                <td><strong>UF:</strong></td>
+                <td>@viaCepResponse.Uf</td>
+            </tr>
+            <tr>
+                <td><strong>DDD:</strong></td>
+                <td>@viaCepResponse.Ddd</td>
+            </tr>
+        </tbody>
+
+    </table>
+}
+@if (!string.IsNullOrEmpty(errorMenssage))
+{
+    <div class="alert alert-danger mt-4">
+        @errorMenssage
+    </div>
+}
+
+@code{
+    private string cep;
+    private Endereco viaCepResponse;
+    private string errorMenssage;
+    private async Task ConsultaCep()
+    {
+        errorMenssage = string.Empty;
+        viaCepResponse = null;
+
+        if (string.IsNullOrWhiteSpace(cep))
+        {
+            errorMenssage = "Por favor, digite um CEP.";
+            return;
+        }
+        string CepFormatado = new string(cep.Where(char.IsDigit).ToArray());
+
+        if(CepFormatado.Length != 8)
+        {
+            errorMenssage = "O CEP deve conter 8 digitos.";
+            return;
+        }
+        try
+        {
+            var url = $"https://viacep.com.br/ws/{CepFormatado}/json/";
+            viaCepResponse = await Http.GetFromJsonAsync<Endereco>(url);
+            if(viaCepResponse.Cep == null)
+            {
+                errorMenssage = "CEP não encontrado ou inválido";
+            }
+
+        }
+        catch(HttpRequestException ex)
+        {
+            errorMenssage = $"Erro ao conectar à API: {ex.Message}";
+        }
+        catch(Exception ex)
+        {
+            errorMenssage = $"Ocorreu um erro: {ex.Message}";
+        }
+    }
+}
